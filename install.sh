@@ -182,7 +182,7 @@ rm -rf yay-bin
 # Using yay for everything to handle AUR dependencies easily
 sudo -u $USERNAME yay -S --noconfirm \
     hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland \
-    waybar wofi kitty thunar tumbler thunar-archive-plugin file-roller \
+    kitty thunar tumbler thunar-archive-plugin file-roller \
     imv mpv vlc \
     firefox chromium \
     vesktop-bin \
