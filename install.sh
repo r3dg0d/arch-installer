@@ -120,7 +120,7 @@ mount "$EFI_PART" /mnt/boot
 # ==============================================================================
 
 echo -e "\n${GREEN}Step 3: Installing Base System...${NC}"
-pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager intel-ucode amd-ucode gum bluez bluez-utils
+pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl intel-ucode amd-ucode gum bluez bluez-utils
 
 # Generate fstab
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -179,33 +179,54 @@ rm -rf yay-bin
 # Install Packages
 # Using yay for everything to handle AUR dependencies easily
 sudo -u $USERNAME yay -S --noconfirm \
-    hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland \
+    hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland sddm \
     flatpak \
     kitty thunar tumbler thunar-archive-plugin file-roller \
-    imv mpv vlc audacity kdenlive easyeffects obs-studio \
+    imv mpv vlc audacity kdenlive easyeffects obs-studio-browser \
     firefox chromium tor-browser-bin \
     helium-browser-bin \
-    vesktop-bin telegram-desktop discord thunderbird \
+    vesktop-bin telegram-desktop thunderbird \
     spotify \
     prismlauncher pcsx2 \
     cursor-bin \
     mullvad-vpn-bin \
     qbittorrent \
     keepassxc onionshare metadata-cleaner \
-    flatseal mission-center-bin peazip-qt-bin czkawka-gui-bin \
+    flatseal mission-center peazip-qt-bin czkawka-gui-bin \
     timeshift virt-manager qemu-desktop switcheroo-bin \
     dino senpai simplex-chat-desktop-bin \
     cups system-config-printer \
     wonderwall \
     waydroid \
-    bazarr \
-    constrict \
+    bazaar \
     localsend-bin \
     noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-twemoji ttf-jetbrains-mono ttf-font-awesome \
     noctalia-shell \
     fastfetch \
     polkit-gnome \
-    qt5-wayland qt6-wayland
+    qt5-wayland qt6-wayland \
+    sddm-sugar-dark accountsservice
+
+# Enable Display Manager (SDDM)
+systemctl enable sddm
+
+# SDDM Theme & Avatar Setup
+echo "Configuring SDDM Theme (Sugar Dark) & Avatar..."
+mkdir -p /etc/sddm.conf.d
+cat <<SDDM > /etc/sddm.conf.d/theme.conf
+[Theme]
+Current=sugar-dark
+SDDM
+
+# Set Avatar from GitHub
+mkdir -p /var/lib/AccountsService/icons
+mkdir -p /var/lib/AccountsService/users
+curl -L "https://avatars.githubusercontent.com/u/192937334?v=4" -o /var/lib/AccountsService/icons/$USERNAME
+cat <<USERACCT > /var/lib/AccountsService/users/$USERNAME
+[User]
+Icon=/var/lib/AccountsService/icons/$USERNAME
+USERACCT
+
 
 # Noctalia Setup
 # Assuming noctalia-shell is in AUR or installed above.
