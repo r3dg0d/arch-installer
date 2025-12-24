@@ -28,14 +28,12 @@ fi
 
 clear
 echo -e "${BLUE}
-   ___       ___       ___       ___       ___   
-  /\  \     /\  \     /\  \     /\__\     /\  \  
- /::\  \   /::\  \   /::\  \   /:/  /    /::\  \ 
-/::\:\__\ /::\:\__\ /:/\:\__\ /:/__/    /::\:\__\
-\/\::/  / \;:::/  / \:\ \/__/ \:\  \    \:\:\/  /
-  /:/  /   |:\/__/   \:\__\    \:\__\    \:\/  / 
-  \/__/     \|__|     \/__/     \/__/     \/__/  
-                                                 
+   _    ____   ____ _   _ 
+  / \  |  _ \ / ___| | | |
+ / _ \ | |_) | |   | |_| |
+/ ___ \|  _ <| |___|  _  |
+/_/   \_\_| \_\\____|_| |_|
+
    ARCH LINUX INSTALLER - NOCTALIA EDITION
 ${NC}"
 
@@ -182,13 +180,27 @@ rm -rf yay-bin
 # Using yay for everything to handle AUR dependencies easily
 sudo -u $USERNAME yay -S --noconfirm \
     hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland \
+    flatpak \
     kitty thunar tumbler thunar-archive-plugin file-roller \
-    imv mpv vlc \
-    firefox chromium \
-    vesktop-bin \
+    imv mpv vlc audacity kdenlive easyeffects obs-studio \
+    firefox chromium tor-browser-bin \
+    helium-browser-bin \
+    vesktop-bin telegram-desktop discord thunderbird \
+    spotify \
+    prismlauncher pcsx2 \
     cursor-bin \
     mullvad-vpn-bin \
     qbittorrent \
+    keepassxc onionshare metadata-cleaner \
+    flatseal mission-center-bin peazip-qt-bin czkawka-gui-bin \
+    timeshift virt-manager qemu-desktop switcheroo-bin \
+    dino senpai simplex-chat-desktop-bin \
+    cups system-config-printer \
+    wonderwall \
+    waydroid \
+    bazarr \
+    constrict \
+    localsend-bin \
     noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-twemoji ttf-jetbrains-mono ttf-font-awesome \
     noctalia-shell \
     fastfetch \
@@ -199,7 +211,7 @@ sudo -u $USERNAME yay -S --noconfirm \
 # Assuming noctalia-shell is in AUR or installed above.
 
 # ------------------------------------------------------------------------------
-# DOTFILES
+# 5. SYSTEM UPDATE & DOTFILES
 # ------------------------------------------------------------------------------
 
 echo "Cloning dotfiles..."
@@ -212,6 +224,12 @@ ln -s /home/$USERNAME/dotfiles/.bashrc /home/$USERNAME/.bashrc
 # Link Ghostty
 mkdir -p /home/$USERNAME/.config
 ln -s /home/$USERNAME/dotfiles/.config/ghostty /home/$USERNAME/.config/ghostty
+
+# Clone System Update Script
+echo "Installing System Update Script..."
+sudo -u $USERNAME git clone https://github.com/r3dg0d/arch-system-update.git /home/$USERNAME/arch-system-update
+chmod +x /home/$USERNAME/arch-system-update/system-update
+ln -s /home/$USERNAME/arch-system-update/system-update /usr/local/bin/system-update
 
 # Ensure permissions
 chown -R $USERNAME:$USERNAME /home/$USERNAME
