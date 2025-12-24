@@ -34,7 +34,7 @@ bash <(curl -s https://raw.githubusercontent.com/r3dg0d/arch-installer/main/inst
 - **Base**: Arch Linux, Linux Kernel, Base Devel
 - **Desktop**: Hyprland, Noctalia Shell
 - **Terminal**: Ghostty + Zsh/Bash Rice
-- **Browser**: Firefox / Chromium
+- **Browser**: Helium + Firefox / Chromium
 - **Dev**: Cursor, Git, Vim
 - **Social**: Vesktop (Discord)
 - **Utils**: Thunar, Imv, Mpv, Qbittorrent, Mullvad VPN
