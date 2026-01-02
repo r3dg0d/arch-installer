@@ -12,6 +12,7 @@ set -e
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # Check if run as root
@@ -28,7 +29,7 @@ fi
 
 clear
 echo -e "${BLUE}
-   _    ____   ____ _   _ 
+   _    ____   ____ _   _
   / \  |  _ \ / ___| | | |
  / _ \ | |_) | |   | |_| |
 / ___ \|  _ <| |___|  _  |
@@ -53,11 +54,12 @@ ENC_PASSWORD=$(gum input --password --placeholder "Disk Encryption Password")
 DISK=$(gum choose $(lsblk -d -n -o NAME,SIZE,MODEL | grep -v "loop" | awk '{print "/dev/"$1" ("$2" "$3")"}') | awk '{print $1}')
 
 if [ -z "$DISK" ]; then
-    echo "No disk selected."
+    echo -e "${RED}No disk selected.${NC}"
     exit 1
 fi
 
-gum confirm "WARNING: THIS WILL WIPE $DISK. CONTINUE?" || exit 1
+echo -e "${YELLOW}WARNING: THIS WILL WIPE $DISK COMPLETELY!${NC}"
+gum confirm "Are you absolutely sure you want to continue?" || exit 1
 
 # ==============================================================================
 # 2. DISK PARTITIONING & ENCRYPTION
@@ -65,53 +67,57 @@ gum confirm "WARNING: THIS WILL WIPE $DISK. CONTINUE?" || exit 1
 
 echo -e "\n${GREEN}Step 2: Wiping and Partitioning $DISK...${NC}"
 
-# Wipe
-wipefs -a "$DISK"
+# Validate disk exists
+if [ ! -b "$DISK" ]; then
+    echo -e "${RED}ERROR: Disk $DISK does not exist!${NC}"
+    exit 1
+fi
 
-# Partition layout:
-# 1. EFI (512M)
-# 2. Swap (Optional, using swapfile or partition? Let's go simple partition for hibernate support on laptop)
-#    Actually, swapfile on Btrfs is fine, but let's stick to standard layout.
-#    Let's do: EFI (512M), Root (Rest) -> LUKS -> LVM/Btrfs
-#    We'll do a simple LUKS on Partition 2.
+# Wipe disk completely
+echo -e "${BLUE}Wiping disk...${NC}"
+wipefs -a "$DISK" || echo "Warning: wipefs failed, continuing..."
 
+# Create GPT partition table
+echo -e "${BLUE}Creating partition table...${NC}"
 parted -s "$DISK" mklabel gpt
+
+# Create EFI partition (512MB)
+echo -e "${BLUE}Creating EFI partition...${NC}"
 parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
 parted -s "$DISK" set 1 esp on
+
+# Create root partition (rest of disk)
+echo -e "${BLUE}Creating root partition...${NC}"
 parted -s "$DISK" mkpart primary 513MiB 100%
 
-EFI_PART="${DISK}p1"
-ROOT_PART="${DISK}p2"
-
-# NVMe drives use p1/p2, SATA uses 1/2. Adjust if needed.
-if [[ "$DISK" != *"nvme"* ]] && [[ "$DISK" != *"mmcblk"* ]]; then
+# Set partition variables based on disk type
+if [[ "$DISK" == *"nvme"* ]] || [[ "$DISK" == *"mmcblk"* ]]; then
+    EFI_PART="${DISK}p1"
+    ROOT_PART="${DISK}p2"
+else
     EFI_PART="${DISK}1"
     ROOT_PART="${DISK}2"
 fi
 
-# Encrypt Root
-echo -e "\n${BLUE}Encrypting Root Partition...${NC}"
-echo -n "$ENC_PASSWORD" | cryptsetup luksFormat "$ROOT_PART" -
-echo -n "$ENC_PASSWORD" | cryptsetup open "$ROOT_PART" cryptroot -
+# Validate partitions exist
+if [ ! -b "$EFI_PART" ] || [ ! -b "$ROOT_PART" ]; then
+    echo -e "${RED}ERROR: Failed to create partitions!${NC}"
+    exit 1
+fi
 
-# Format
-echo -e "\n${BLUE}Formatting filesystems...${NC}"
+# Encrypt root partition
+echo -e "\n${BLUE}Encrypting root partition...${NC}"
+echo -n "$ENC_PASSWORD" | cryptsetup -q luksFormat "$ROOT_PART"
+echo -n "$ENC_PASSWORD" | cryptsetup open "$ROOT_PART" cryptroot
+
+# Format filesystems
+echo -e "${BLUE}Formatting filesystems...${NC}"
 mkfs.fat -F32 "$EFI_PART"
-mkfs.btrfs -L arch /dev/mapper/cryptroot
+mkfs.ext4 /dev/mapper/cryptroot
 
-# Mount
+# Mount filesystems
+echo -e "${BLUE}Mounting filesystems...${NC}"
 mount /dev/mapper/cryptroot /mnt
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@home
-btrfs subvolume create /mnt/@var
-umount /mnt
-
-mount -o subvol=@,compress=zstd /dev/mapper/cryptroot /mnt
-mkdir -p /mnt/home
-mount -o subvol=@home,compress=zstd /dev/mapper/cryptroot /mnt/home
-mkdir -p /mnt/var
-mount -o subvol=@var,compress=zstd /dev/mapper/cryptroot /mnt/var
-
 mkdir -p /mnt/boot
 mount "$EFI_PART" /mnt/boot
 
@@ -120,13 +126,11 @@ mount "$EFI_PART" /mnt/boot
 # ==============================================================================
 
 echo -e "\n${GREEN}Step 3: Installing Base System...${NC}"
-pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl intel-ucode amd-ucode btrfs-progs gum bluez bluez-utils
+pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl intel-ucode amd-ucode gum bluez bluez-utils
 
 # Generate fstab
+echo -e "${BLUE}Generating fstab...${NC}"
 genfstab -U /mnt >> /mnt/etc/fstab
-
-# Fix fstab for Btrfs (disable fsck which doesn't work with Btrfs subvolumes)
-sed -i 's/\(btrfs.*\) [0-9]$/\1 0/g' /mnt/etc/fstab
 
 # ==============================================================================
 # 4. CHROOT SCRIPT
@@ -161,12 +165,13 @@ sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet"/GRUB_CMDLINE_LINUX_DEFAU
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# MKINITCPIO
-sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt btrfs filesystems fsck)/g' /etc/mkinitcpio.conf
-sed -i 's/^MODULES=()/MODULES=(btrfs)/g' /etc/mkinitcpio.conf
-echo "Building initramfs with Btrfs support..."
+# Configure initramfs for LUKS
+echo "Configuring initramfs for encryption..."
+sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt filesystems fsck)/g' /etc/mkinitcpio.conf
+
+echo "Building initramfs..."
 if ! mkinitcpio -P; then
-    echo "ERROR: Failed to build initramfs. Check mkinitcpio configuration."
+    echo "ERROR: Failed to build initramfs!"
     exit 1
 fi
 
@@ -189,7 +194,7 @@ rm -rf yay-bin
 # Install Packages
 # Using yay for everything to handle AUR dependencies easily
 sudo -u $USERNAME yay -S --noconfirm \
-    hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland sddm \
+    hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland \
     flatpak \
     kitty thunar tumbler thunar-archive-plugin file-roller \
     nsxiv mpv vlc yt-dlp audacity kdenlive easyeffects obs-studio \
@@ -213,22 +218,6 @@ sudo -u $USERNAME yay -S --noconfirm \
     fastfetch \
     polkit-gnome \
     qt5-wayland qt6-wayland
-
-# Enable Display Manager (SDDM)
-systemctl enable sddm
-
-# SDDM Configuration & Avatar Setup
-echo "Configuring SDDM & Avatar..."
-mkdir -p /etc/sddm.conf.d
-
-# Set Avatar from GitHub
-mkdir -p /var/lib/AccountsService/icons
-mkdir -p /var/lib/AccountsService/users
-curl -L "https://avatars.githubusercontent.com/u/192937334?v=4" -o /var/lib/AccountsService/icons/$USERNAME
-cat <<USERACCT > /var/lib/AccountsService/users/$USERNAME
-[User]
-Icon=/var/lib/AccountsService/icons/$USERNAME
-USERACCT
 
 # Noctalia Setup
 # Assuming noctalia-shell is in AUR or installed above.
