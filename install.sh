@@ -220,12 +220,8 @@ systemctl enable bluetooth
 
 # Install Yay
 echo "Installing Yay AUR helper..."
-cd /home/$USERNAME
-su - $USERNAME -c "git clone https://aur.archlinux.org/yay-bin.git"
-cd yay-bin
-su - $USERNAME -c "makepkg -si --noconfirm"
-cd ..
-rm -rf yay-bin
+su - $USERNAME -c "cd && git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si --noconfirm"
+rm -rf /home/$USERNAME/yay-bin
 
 # Install Packages
 # Using yay for everything to handle AUR dependencies easily
