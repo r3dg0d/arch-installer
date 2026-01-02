@@ -120,7 +120,7 @@ mount "$EFI_PART" /mnt/boot
 # ==============================================================================
 
 echo -e "\n${GREEN}Step 3: Installing Base System...${NC}"
-pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl intel-ucode amd-ucode gum bluez bluez-utils
+pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl intel-ucode amd-ucode btrfs-progs gum bluez bluez-utils
 
 # Generate fstab
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -163,7 +163,12 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 # MKINITCPIO
 sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt btrfs filesystems fsck)/g' /etc/mkinitcpio.conf
-mkinitcpio -P
+sed -i 's/^MODULES=()/MODULES=(btrfs)/g' /etc/mkinitcpio.conf
+echo "Building initramfs with Btrfs support..."
+if ! mkinitcpio -P; then
+    echo "ERROR: Failed to build initramfs. Check mkinitcpio configuration."
+    exit 1
+fi
 
 # Enable Services
 systemctl enable NetworkManager
