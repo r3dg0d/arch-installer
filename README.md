@@ -40,7 +40,7 @@ bash <(curl -s https://raw.githubusercontent.com/r3dg0d/arch-installer/main/inst
 - **Multimedia**: Spotify, VLC, MPV, Audacity, Kdenlive, EasyEffects, OBS Studio, Wonderwall
 - **Gaming**: PrismLauncher, PCSX2, Steam (via repo)
 - **Privacy/Security**: Mullvad VPN, KeePassXC, OnionShare, Metadata Cleaner
-- **Utils**: Thunar, PeaZip, Mission Center, Timeshift, Czkawka, Localsend, Flatseal, Virt-Manager, Waydroid, Cups, Bazaar, Constrict, Switcheroo
+- **Utils**: Thunar, PeaZip, Mission Center, Timeshift, Czkawka, Localsend, Flatseal, Virt-Manager, Waydroid, Cups, Bazaar, Switcheroo
 
 ---
 *Made for my personal setup, use at your own risk.*
