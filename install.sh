@@ -152,16 +152,51 @@ echo "$HOSTNAME" > /etc/hostname
 echo "127.0.0.1 localhost" >> /etc/hosts
 echo "127.0.1.1 $HOSTNAME.localdomain $HOSTNAME" >> /etc/hosts
 
-# Users
+# Create user and set passwords
+echo "Creating user $USERNAME..."
 useradd -m -G wheel,storage,power -s /bin/bash $USERNAME
+
+echo "Setting passwords..."
 echo "$USERNAME:$PASSWORD" | chpasswd
 echo "root:$ROOT_PASSWORD" | chpasswd
+
+# Verify user was created successfully
+if ! id "$USERNAME" &>/dev/null; then
+    echo "ERROR: Failed to create user $USERNAME!"
+    exit 1
+fi
+
+if ! groups "$USERNAME" | grep -q "wheel"; then
+    echo "ERROR: User $USERNAME is not in wheel group!"
+    exit 1
+fi
+
+echo "User $USERNAME created successfully with sudo access."
+echo ""
+echo "Installation Summary:"
+echo "====================="
+echo "Username: $USERNAME"
+echo "Encryption Password: [SET] (will be required on boot to unlock disk)"
+echo "Root Password: [SET]"
+echo "User Password: [SET]"
+echo ""
+echo "On first boot:"
+echo "1. Enter encryption password to unlock the disk"
+echo "2. Login with username: $USERNAME and your user password"
+echo "3. Hyprland will start automatically"
+
 echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 
-# Bootloader (GRUB)
-pacman -S --noconfirm grub efibootmgr
-# Edit /etc/default/grub for LUKS
-sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet cryptdevice=UUID=$(blkid -s UUID -o value $ROOT_PART):cryptroot root=\/dev\/mapper\/cryptroot"/g' /etc/default/grub
+# Install and configure bootloader (GRUB)
+echo "Installing GRUB bootloader..."
+pacman -S --noconfirm grub efibootmgr os-prober
+
+# Configure GRUB for LUKS encryption
+echo "Configuring GRUB for LUKS..."
+ROOT_UUID=\$(blkid -s UUID -o value $ROOT_PART)
+echo "Root partition UUID: \$ROOT_UUID"
+sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=\${ROOT_UUID}:cryptroot root=\/dev\/mapper\/cryptroot\"/g" /etc/default/grub
+
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
