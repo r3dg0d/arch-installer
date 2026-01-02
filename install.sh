@@ -182,41 +182,34 @@ sudo -u $USERNAME yay -S --noconfirm \
     hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland sddm \
     flatpak \
     kitty thunar tumbler thunar-archive-plugin file-roller \
-    imv mpv vlc audacity kdenlive easyeffects obs-studio-browser \
+    nsxiv mpv vlc yt-dlp audacity kdenlive easyeffects obs-studio \
     firefox chromium tor-browser-bin \
     helium-browser-bin \
-    vesktop-bin telegram-desktop thunderbird \
-    spotify \
-    prismlauncher pcsx2 \
+    telegram-desktop thunderbird \
+    spotify-launcher \
+    prismlauncher \
     cursor-bin \
-    mullvad-vpn-bin \
     qbittorrent \
     keepassxc onionshare metadata-cleaner \
     flatseal mission-center peazip-qt-bin czkawka-gui-bin \
-    timeshift virt-manager qemu-desktop switcheroo-bin \
-    dino senpai simplex-chat-desktop-bin \
+    timeshift virt-manager qemu-desktop switcheroo-control \
+    dino senpai simplex-chat-bin \
     cups system-config-printer \
     wonderwall \
     waydroid \
-    bazaar \
-    localsend-bin \
-    noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-twemoji ttf-jetbrains-mono ttf-font-awesome \
+    breezy \
+    noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-twemoji-git ttf-jetbrains-mono ttf-font-awesome \
     noctalia-shell \
     fastfetch \
     polkit-gnome \
-    qt5-wayland qt6-wayland \
-    sddm-sugar-dark accountsservice
+    qt5-wayland qt6-wayland
 
 # Enable Display Manager (SDDM)
 systemctl enable sddm
 
-# SDDM Theme & Avatar Setup
-echo "Configuring SDDM Theme (Sugar Dark) & Avatar..."
+# SDDM Configuration & Avatar Setup
+echo "Configuring SDDM & Avatar..."
 mkdir -p /etc/sddm.conf.d
-cat <<SDDM > /etc/sddm.conf.d/theme.conf
-[Theme]
-Current=sugar-dark
-SDDM
 
 # Set Avatar from GitHub
 mkdir -p /var/lib/AccountsService/icons
@@ -226,7 +219,6 @@ cat <<USERACCT > /var/lib/AccountsService/users/$USERNAME
 [User]
 Icon=/var/lib/AccountsService/icons/$USERNAME
 USERACCT
-
 
 # Noctalia Setup
 # Assuming noctalia-shell is in AUR or installed above.
@@ -245,6 +237,9 @@ ln -s /home/$USERNAME/dotfiles/.bashrc /home/$USERNAME/.bashrc
 # Link Ghostty
 mkdir -p /home/$USERNAME/.config
 ln -s /home/$USERNAME/dotfiles/.config/ghostty /home/$USERNAME/.config/ghostty
+
+# Link Fastfetch config
+ln -s /home/$USERNAME/dotfiles/.config/fastfetch /home/$USERNAME/.config/fastfetch
 
 # Clone System Update Script
 echo "Installing System Update Script..."
