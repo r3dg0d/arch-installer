@@ -125,6 +125,9 @@ pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl i
 # Generate fstab
 genfstab -U /mnt >> /mnt/etc/fstab
 
+# Fix fstab for Btrfs (disable fsck which doesn't work with Btrfs subvolumes)
+sed -i 's/\(btrfs.*\) [0-9]$/\1 0/g' /mnt/etc/fstab
+
 # ==============================================================================
 # 4. CHROOT SCRIPT
 # ==============================================================================
@@ -159,7 +162,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # MKINITCPIO
-sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt filesystems fsck)/g' /etc/mkinitcpio.conf
+sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt btrfs filesystems fsck)/g' /etc/mkinitcpio.conf
 mkinitcpio -P
 
 # Enable Services
