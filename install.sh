@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Arch Linux Clean Install Script
-# For ThinkPad T480s (and others)
-# Includes Hyprland, Noctalia Shell, FDE, and Rice
+# Minimal Hyprland + Noctalia Shell Setup
+# Includes Full Disk Encryption (ext4)
 #
 
 # Stop on error
@@ -124,7 +124,7 @@ mount "$EFI_PART" /mnt/boot
 # ==============================================================================
 
 echo -e "\n${GREEN}Step 3: Installing Base System...${NC}"
-pacstrap /mnt base linux linux-firmware base-devel git vim networkmanager curl intel-ucode amd-ucode gum bluez bluez-utils
+pacstrap /mnt base linux linux-firmware base-devel git networkmanager intel-ucode bluez bluez-utils gum
 
 # Generate fstab
 echo -e "${BLUE}Generating fstab...${NC}"
@@ -232,28 +232,12 @@ cd ..
 rm -rf yay-bin
 
 # Install Packages
-# Using yay for everything to handle AUR dependencies easily
+# Minimal Hyprland and Noctalia setup
 sudo -u $USERNAME yay -S --noconfirm \
-    hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland \
-    flatpak \
-    kitty thunar tumbler thunar-archive-plugin file-roller \
-    nsxiv mpv vlc yt-dlp audacity kdenlive easyeffects obs-studio \
-    firefox chromium tor-browser-bin \
-    telegram-desktop thunderbird \
-    spotify-launcher \
-    prismlauncher \
-    qbittorrent \
-    keepassxc onionshare metadata-cleaner \
-    flatseal mission-center peazip-qt-bin czkawka-gui-bin \
-    timeshift virt-manager qemu-desktop switcheroo-control \
-    dino senpai simplex-chat-bin \
-    cups system-config-printer \
-    wonderwall \
-    waydroid \
-    breezy \
-    noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-twemoji-git ttf-jetbrains-mono ttf-font-awesome \
+    hyprland xdg-desktop-portal-hyprland \
     noctalia-shell \
-    fastfetch \
+    kitty \
+    noto-fonts noto-fonts-cjk noto-fonts-emoji \
     polkit-gnome \
     qt5-wayland qt6-wayland
 
