@@ -239,11 +239,9 @@ sudo -u $USERNAME yay -S --noconfirm \
     kitty thunar tumbler thunar-archive-plugin file-roller \
     nsxiv mpv vlc yt-dlp audacity kdenlive easyeffects obs-studio \
     firefox chromium tor-browser-bin \
-    helium-browser-bin \
     telegram-desktop thunderbird \
     spotify-launcher \
     prismlauncher \
-    cursor-bin \
     qbittorrent \
     keepassxc onionshare metadata-cleaner \
     flatseal mission-center peazip-qt-bin czkawka-gui-bin \
