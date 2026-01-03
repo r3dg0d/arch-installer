@@ -199,16 +199,32 @@ pacman -S --noconfirm grub efibootmgr os-prober
 echo "Configuring GRUB for LUKS..."
 ROOT_UUID=\$(blkid -s UUID -o value $ROOT_PART)
 echo "Root partition UUID: \$ROOT_UUID"
-sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=\${ROOT_UUID}:cryptroot root=\/dev\/mapper\/cryptroot\"/g" /etc/default/grub
+
+# Update GRUB_CMDLINE_LINUX_DEFAULT to include cryptdevice
+if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub; then
+    sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=\${ROOT_UUID}:cryptroot root=\/dev\/mapper\/cryptroot\"/g" /etc/default/grub
+else
+    echo "GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=\${ROOT_UUID}:cryptroot root=\/dev\/mapper\/cryptroot\"" >> /etc/default/grub
+fi
 
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
+echo "Current GRUB configuration:"
+grep "GRUB_CMDLINE_LINUX_DEFAULT" /etc/default/grub
+
 # Configure initramfs for LUKS
 echo "Configuring initramfs for encryption..."
+
+# Add necessary modules for Intel graphics and common hardware
+echo "MODULES=(i915 intel_agp)" >> /etc/mkinitcpio.conf
+
 sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt filesystems fsck)/g' /etc/mkinitcpio.conf
 
 echo "Building initramfs..."
+echo "Current mkinitcpio.conf HOOKS:"
+grep "^HOOKS=" /etc/mkinitcpio.conf
+
 if ! mkinitcpio -P; then
     echo "ERROR: Failed to build initramfs!"
     exit 1
