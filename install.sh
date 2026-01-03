@@ -224,13 +224,16 @@ systemctl enable bluetooth
 
 # Install Yay
 echo "Installing Yay AUR helper..."
-su - $USERNAME -c "cd && git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si --noconfirm"
-rm -rf /home/$USERNAME/yay-bin
+cd /home/$USERNAME
+sudo -u $USERNAME git clone https://aur.archlinux.org/yay-bin.git
+cd yay-bin
+sudo -u $USERNAME makepkg -si --noconfirm
+cd ..
+rm -rf yay-bin
 
 # Install Packages
 # Using yay for everything to handle AUR dependencies easily
-echo "Installing AUR packages..."
-su - $USERNAME -c "yay -S --noconfirm \
+sudo -u $USERNAME yay -S --noconfirm \
     hyprland hyprpaper hyprlock hypridle xdg-desktop-portal-hyprland \
     flatpak \
     kitty thunar tumbler thunar-archive-plugin file-roller \
@@ -254,7 +257,7 @@ su - $USERNAME -c "yay -S --noconfirm \
     noctalia-shell \
     fastfetch \
     polkit-gnome \
-    qt5-wayland qt6-wayland"
+    qt5-wayland qt6-wayland
 
 # Noctalia Setup
 # Assuming noctalia-shell is in AUR or installed above.
@@ -264,7 +267,7 @@ su - $USERNAME -c "yay -S --noconfirm \
 # ------------------------------------------------------------------------------
 
 echo "Cloning dotfiles..."
-su - $USERNAME -c "git clone https://github.com/r3dg0d/dotfiles.git /home/$USERNAME/dotfiles"
+sudo -u $USERNAME git clone https://github.com/r3dg0d/dotfiles.git /home/$USERNAME/dotfiles
 
 # Link .bashrc
 rm /home/$USERNAME/.bashrc
