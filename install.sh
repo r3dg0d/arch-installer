@@ -2,7 +2,7 @@
 #
 # Arch Linux Clean Install Script
 # Minimal Hyprland + Noctalia Shell Setup
-# Includes Full Disk Encryption (ext4)
+# Standard installation (ext4)
 #
 
 # Stop on error
@@ -46,7 +46,6 @@ echo -e "\n${GREEN}Step 1: Configuration${NC}"
 
 HOSTNAME=$(gum input --placeholder "Hostname" --value "archlinux")
 USERNAME=$(gum input --placeholder "Username" --value "user")
-ENC_PASSWORD=$(gum input --password --placeholder "Disk Encryption Password")
 
 # Select Disk
 DISK=$(gum choose $(lsblk -d -n -o NAME,SIZE,MODEL | grep -v "loop" | awk '{print "/dev/"$1" ("$2" "$3")"}') | awk '{print $1}')
@@ -60,7 +59,7 @@ echo -e "${YELLOW}WARNING: THIS WILL WIPE $DISK COMPLETELY!${NC}"
 gum confirm "Are you absolutely sure you want to continue?" || exit 1
 
 # ==============================================================================
-# 2. DISK PARTITIONING & ENCRYPTION
+# 2. DISK PARTITIONING
 # ==============================================================================
 
 echo -e "\n${GREEN}Step 2: Wiping and Partitioning $DISK...${NC}"
@@ -103,19 +102,14 @@ if [ ! -b "$EFI_PART" ] || [ ! -b "$ROOT_PART" ]; then
     exit 1
 fi
 
-# Encrypt root partition
-echo -e "\n${BLUE}Encrypting root partition...${NC}"
-echo -n "$ENC_PASSWORD" | cryptsetup -q luksFormat "$ROOT_PART"
-echo -n "$ENC_PASSWORD" | cryptsetup open "$ROOT_PART" cryptroot
-
 # Format filesystems
 echo -e "${BLUE}Formatting filesystems...${NC}"
 mkfs.fat -F32 "$EFI_PART"
-mkfs.ext4 /dev/mapper/cryptroot
+mkfs.ext4 "$ROOT_PART"
 
 # Mount filesystems
 echo -e "${BLUE}Mounting filesystems...${NC}"
-mount /dev/mapper/cryptroot /mnt
+mount "$ROOT_PART" /mnt
 mkdir -p /mnt/boot
 mount "$EFI_PART" /mnt/boot
 
@@ -178,16 +172,14 @@ echo ""
 echo "Installation Summary:"
 echo "====================="
 echo "Username: $USERNAME"
-echo "Encryption Password: [SET] (will be required on boot to unlock disk)"
 echo ""
 echo "Next Steps:"
 echo "1. You will be prompted to set the root password"
 echo "2. You will be prompted to set the user password for $USERNAME"
 echo ""
 echo "On first boot:"
-echo "1. Enter encryption password to unlock the disk"
-echo "2. Login with username: $USERNAME and your user password"
-echo "3. Hyprland will start automatically"
+echo "1. Login with username: $USERNAME and your user password"
+echo "2. Hyprland will start automatically"
 
 echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 
@@ -195,16 +187,16 @@ echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 echo "Installing GRUB bootloader..."
 pacman -S --noconfirm grub efibootmgr os-prober
 
-# Configure GRUB for LUKS encryption
-echo "Configuring GRUB for LUKS..."
+# Configure GRUB
+echo "Configuring GRUB..."
 ROOT_UUID=\$(blkid -s UUID -o value $ROOT_PART)
 echo "Root partition UUID: \$ROOT_UUID"
 
-# Update GRUB_CMDLINE_LINUX_DEFAULT to include cryptdevice
+# Update GRUB_CMDLINE_LINUX_DEFAULT to use root partition UUID
 if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub; then
-    sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=\${ROOT_UUID}:cryptroot root=\/dev\/mapper\/cryptroot\"/g" /etc/default/grub
+    sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet root=UUID=\${ROOT_UUID}\"/g" /etc/default/grub
 else
-    echo "GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=\${ROOT_UUID}:cryptroot root=\/dev\/mapper\/cryptroot\"" >> /etc/default/grub
+    echo "GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet root=UUID=\${ROOT_UUID}\"" >> /etc/default/grub
 fi
 
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
@@ -213,13 +205,14 @@ grub-mkconfig -o /boot/grub/grub.cfg
 echo "Current GRUB configuration:"
 grep "GRUB_CMDLINE_LINUX_DEFAULT" /etc/default/grub
 
-# Configure initramfs for LUKS
-echo "Configuring initramfs for encryption..."
+# Configure initramfs
+echo "Configuring initramfs..."
 
 # Add necessary modules for Intel graphics and common hardware
 echo "MODULES=(i915 intel_agp)" >> /etc/mkinitcpio.conf
 
-sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt filesystems fsck)/g' /etc/mkinitcpio.conf
+# Keep default hooks (no encrypt hook needed)
+sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block filesystems fsck)/g' /etc/mkinitcpio.conf
 
 echo "Building initramfs..."
 echo "Current mkinitcpio.conf HOOKS:"
