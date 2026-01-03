@@ -46,8 +46,6 @@ echo -e "\n${GREEN}Step 1: Configuration${NC}"
 
 HOSTNAME=$(gum input --placeholder "Hostname" --value "archlinux")
 USERNAME=$(gum input --placeholder "Username" --value "user")
-PASSWORD=$(gum input --password --placeholder "User Password")
-ROOT_PASSWORD=$(gum input --password --placeholder "Root Password")
 ENC_PASSWORD=$(gum input --password --placeholder "Disk Encryption Password")
 
 # Select Disk
@@ -152,13 +150,17 @@ echo "$HOSTNAME" > /etc/hostname
 echo "127.0.0.1 localhost" >> /etc/hosts
 echo "127.0.1.1 $HOSTNAME.localdomain $HOSTNAME" >> /etc/hosts
 
-# Create user and set passwords
+# Create user
 echo "Creating user $USERNAME..."
 useradd -m -G wheel,storage,power -s /bin/bash $USERNAME
 
-echo "Setting passwords..."
-echo "$USERNAME:$PASSWORD" | chpasswd
-echo "root:$ROOT_PASSWORD" | chpasswd
+# Set root password
+echo "Setting root password..."
+passwd root
+
+# Set user password
+echo "Setting password for user $USERNAME..."
+passwd $USERNAME
 
 # Verify user was created successfully
 if ! id "$USERNAME" &>/dev/null; then
@@ -177,8 +179,10 @@ echo "Installation Summary:"
 echo "====================="
 echo "Username: $USERNAME"
 echo "Encryption Password: [SET] (will be required on boot to unlock disk)"
-echo "Root Password: [SET]"
-echo "User Password: [SET]"
+echo ""
+echo "Next Steps:"
+echo "1. You will be prompted to set the root password"
+echo "2. You will be prompted to set the user password for $USERNAME"
 echo ""
 echo "On first boot:"
 echo "1. Enter encryption password to unlock the disk"
