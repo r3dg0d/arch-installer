@@ -148,6 +148,21 @@ echo "127.0.1.1 $HOSTNAME.localdomain $HOSTNAME" >> /etc/hosts
 echo "Creating user $USERNAME..."
 useradd -m -G wheel,storage,power -s /bin/bash $USERNAME
 
+# Set up environment for Hyprland/Wayland
+echo "Setting up Wayland environment..."
+cat >> /home/$USERNAME/.bashrc << 'EOF'
+
+# Wayland/Hyprland environment
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=Hyprland
+export XDG_SESSION_DESKTOP=Hyprland
+export QT_QPA_PLATFORM=wayland
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export MOZ_ENABLE_WAYLAND=1
+export SDL_VIDEODRIVER=wayland
+export _JAVA_AWT_WM_NONREPARENTING=1
+EOF
+
 # Set root password
 echo "Setting root password..."
 passwd root
@@ -179,7 +194,7 @@ echo "2. You will be prompted to set the user password for $USERNAME"
 echo ""
 echo "On first boot:"
 echo "1. Login with username: $USERNAME and your user password"
-echo "2. Hyprland will start automatically"
+echo "2. Hyprland with Noctalia Shell will start automatically"
 
 echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 
@@ -251,7 +266,78 @@ sudo -u $USERNAME yay -S --noconfirm \
     qt5-wayland qt6-wayland
 
 # Noctalia Setup
-# Assuming noctalia-shell is in AUR or installed above.
+# Enable Noctalia systemd user service for automatic startup
+echo "Enabling Noctalia service for automatic startup..."
+sudo -u $USERNAME systemctl --user enable noctalia.service
+
+# Create basic Hyprland configuration for auto-startup
+echo "Creating basic Hyprland configuration..."
+mkdir -p /home/$USERNAME/.config/hypr
+cat > /home/$USERNAME/.config/hypr/hyprland.conf << 'EOF'
+# Basic Hyprland configuration for Noctalia
+exec-once = noctalia-shell
+
+# Basic monitor and input settings
+monitor=,preferred,auto,auto
+
+# Basic window rules
+windowrulev2 = float,class:(.*)
+
+# Basic keybindings
+$mainMod = SUPER
+
+bind = $mainMod, Q, exec, kitty
+bind = $mainMod, M, exit,
+bind = $mainMod, C, killactive,
+bind = $ALT, F4, killactive,
+
+# Switch workspaces
+bind = $mainMod, 1, workspace, 1
+bind = $mainMod, 2, workspace, 2
+bind = $mainMod, 3, workspace, 3
+bind = $mainMod, 4, workspace, 4
+bind = $mainMod, 5, workspace, 5
+
+# Move active window to workspace
+bind = $mainMod SHIFT, 1, movetoworkspace, 1
+bind = $mainMod SHIFT, 2, movetoworkspace, 2
+bind = $mainMod SHIFT, 3, movetoworkspace, 3
+bind = $mainMod SHIFT, 4, movetoworkspace, 4
+bind = $mainMod SHIFT, 5, movetoworkspace, 5
+
+# Scroll through workspaces
+bind = $mainMod, mouse_down, workspace, e+1
+bind = $mainMod, mouse_up, workspace, e-1
+
+# Move/resize windows
+bindm = $mainMod, mouse:272, movewindow
+bindm = $mainMod, mouse:273, resizewindow
+EOF
+
+# Create .xinitrc for manual startup if needed
+cat > /home/$USERNAME/.xinitrc << 'EOF'
+#!/bin/sh
+# Start Hyprland with Noctalia
+exec Hyprland
+EOF
+chmod +x /home/$USERNAME/.xinitrc
+
+# Create a systemd user service to start Hyprland automatically
+mkdir -p /home/$USERNAME/.config/systemd/user
+cat > /home/$USERNAME/.config/systemd/user/hyprland-session.service << 'EOF'
+[Unit]
+Description=Hyprland session with Noctalia
+Wants=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/Hyprland
+Restart=no
+EOF
+
+# Enable the Hyprland session service
+sudo -u $USERNAME systemctl --user enable hyprland-session.service
 
 # ------------------------------------------------------------------------------
 # 5. SYSTEM UPDATE & DOTFILES
